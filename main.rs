@@ -75,6 +75,38 @@ fn invert_tree<T: Clone>(root: &NodeRef<T>) -> NodeRef<T> {
     }
 }
 
+fn invert_tree_nonrec<T: Clone> (root: &NodeRef<T>) -> NodeRef<T> {
+    use Action::*;
+    let mut arg_stack = Vec::<Action<&NodeRef<T>, &T>>::new();
+    let mut ret_stack = Vec::<NodeRef<T>>::new();
+
+    arg_stack.push(Call(root));
+
+    while let Some(action) = arg_stack.pop() {
+        match action {
+            Call(node) => {
+                if let Some(node) = node {
+                    arg_stack.push(Handle(&node.value));
+                    arg_stack.push(Call(&node.right));
+                    arg_stack.push(Call(&node.left));
+                } else {
+                    ret_stack.push(None);
+                }
+            },
+            Handle(value) => {
+                let left = ret_stack.pop().unwrap();
+                let right = ret_stack.pop().unwrap();
+
+                ret_stack.push(Some(Box::new(Node {
+                    value: value.clone(), left, right
+                })))
+            }
+        }
+    }
+
+    ret_stack.pop().unwrap()
+}
+
 fn main() {
     let mut counter: i32 = 1;
     let root = generate_tree(3, &mut counter);
@@ -83,4 +115,6 @@ fn main() {
     print_tree(&invert_tree(&root), 0);
     println!("------------------non recursive print----------------");
     print_tree_nonrec(&root);
-}
+    println!("-------non recursively inverted and printed tree-----");
+    print_tree_nonrec(&invert_tree_nonrec(&root));
+} 
