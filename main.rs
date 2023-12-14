@@ -9,6 +9,11 @@ struct Node<T> {
     right: NodeRef<T>
 }
 
+enum Action<T, U> {
+    Call(T),
+    Handle(U)
+}
+
 fn generate_tree(level: i32, counter: &mut i32) -> NodeRef<i32> {
     if level == 0 {
         None
@@ -22,7 +27,7 @@ fn generate_tree(level: i32, counter: &mut i32) -> NodeRef<i32> {
     }
 }
 
-fn print_tree<T: Display> (root: &NodeRef<T>, level: usize) {
+fn print_tree<T: Display>(root: &NodeRef<T>, level: usize) {
     match root {
         Some(n) => {
             print_tree(&n.left, level + 1);
@@ -36,16 +41,37 @@ fn print_tree<T: Display> (root: &NodeRef<T>, level: usize) {
     }
 }
 
-fn invert_tree<T: Clone> (root: &NodeRef<T>) -> NodeRef<T> {
+fn print_tree_nonrec<T: Display>(root: &NodeRef<T>) {
+    use Action::*;
+    let mut stack = Vec::<Action<(&NodeRef<T>, usize), (&T, usize)>>::new();
+    stack.push(Call((root, 0)));
+    while let Some(action) = stack.pop() {
+        match action {
+            Call((node, level)) => {
+                if let Some(node) = node {
+                    stack.push(Call((&node.right, level + 1)));
+                    stack.push(Handle((&node.value, level)));
+                    stack.push(Call((&node.left, level + 1)));
+                }
+            },
+            Handle((value, level)) => {
+                for _ in 0..level {
+                    print!("  ");
+                }
+                println!("{}", value);
+            }
+        }
+    }
+}
+
+fn invert_tree<T: Clone>(root: &NodeRef<T>) -> NodeRef<T> {
     match root {
-        Some(r) => {
-            Some(Box::new(Node{
-                value: r.value.clone(),
-                left: invert_tree(&r.right),
-                right: invert_tree(&r.left)
-            }))
-        },
-        None => None
+        Some(r) => Some(Box::new(Node {
+            value: r.value.clone(),
+            left: invert_tree(&r.right),
+            right: invert_tree(&r.left),
+        })),
+        None => None,
     }
 }
 
@@ -55,4 +81,6 @@ fn main() {
     print_tree(&root, 0);
     println!("--------------------inverted tree--------------------");
     print_tree(&invert_tree(&root), 0);
+    println!("------------------non recursive print----------------");
+    print_tree_nonrec(&root);
 }
